@@ -7,10 +7,19 @@ from scipy.fftpack import fft
 
 
 def stft(signal, frame, shift, windowtype='hann'):
+    # [hotfix] frameが120くらいより小さいときエラー
     begin = 0
     col = 0  # 配列に格納する際の列のインデックス
 
     mat = np.zeros((frame, int(len(y)/shift)))  # スペクトログラムを格納する行列，大体の大きさを確保しておく
+    
+    # 信号の両端を零詰め
+    for i in range(int(frame/2)):
+        signal = np.insert(signal,i,0)
+    for i in range(frame):
+        signal = np.append(signal,0)
+
+    # 窓関数の指定
     if windowtype == 'hann':
         window = np.hanning(frame)
     elif windowtype == 'hamming':
@@ -18,7 +27,9 @@ def stft(signal, frame, shift, windowtype='hann'):
     elif windowtype == 'blackman':
         window = np.blackman(frame)
 
+    # STFT計算部分
     while frame <= len(y):
+        # 窓関数を乗じてDFT
         mat[:, col] = abs(fft(y[begin:frame])).T*window
         # それぞれシフト長だけシフト
         begin += shift
@@ -37,7 +48,7 @@ if __name__ == '__main__':
     # y = amplitude, sr = sample rate
     y, sr = sf.read(filename)
 
-    spectrogram = stft(y, 1000, 150, 'hamming')
+    spectrogram = stft(y, 1000, 150,'hamming')
 
     plt.imshow(spectrogram, cmap="inferno")
     plt.colorbar()
