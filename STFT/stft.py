@@ -5,32 +5,32 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft
 
-filename = 'wav/s2.wav'
+def stft(signal, frame, shift):
+    begin = 0
+    col = 0  # 配列に格納する際の列のインデックス
 
-# y = amplitude, sr = sample rate
-y,sr = sf.read(filename)
+    mat = np.zeros((frame, int(len(y)/shift)))  # スペクトログラムを格納する行列，大体の大きさを確保しておく
 
-begin = 0
+    while frame <= len(y):
+        mat[:, col] = abs(fft(y[begin:frame])).T
+        # それぞれシフト長だけシフト
+        begin += shift
+        frame += shift
+        col += 1
 
-flame = 1000
-shift = 150 # シフト長
-col = 0
+    mat = mat[:, :col]  # 余分な列を削除
+    mat = 20*np.log1p(mat[int(mat.shape[0]/2):int(mat.shape[0]), :])  # 下半分だけ抽出して利得を計算
+    
+    return mat
 
-totaltime = len(y)/sr
-mat = np.zeros((flame,int(len(y)/shift))) # 作成するスペクトログラム
+if __name__ == '__main__':
+    filename = 'wav/s1.wav'
 
-while flame <= len(y):
-    buf = abs(fft(y[begin:flame]))
-    mat[:,col] = buf.T
-    begin += shift
-    flame += shift
-    col += 1
+    # y = amplitude, sr = sample rate
+    y, sr = sf.read(filename)
 
-mat = mat[:,:col]  # 余分な列を削る
+    spectrogram = stft(y,1000,150)
 
-# 下半分を抽出し利得を計算
-mat_map = 20*np.log1p(mat[int(mat.shape[0]/2):int(mat.shape[0]),:])
-
-plt.imshow(mat_map)
-plt.colorbar()
-plt.show()
+    plt.imshow(spectrogram, cmap="inferno")
+    plt.colorbar()
+    plt.show()
