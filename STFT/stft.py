@@ -7,7 +7,6 @@ from scipy.fftpack import fft
 
 
 def stft(signal, frame, shift, windowtype='hann'):
-    # [hotfix] frameが120くらいより小さいときエラー
     begin = 0
     col = 0  # 配列に格納する際の列のインデックス
 
@@ -29,8 +28,14 @@ def stft(signal, frame, shift, windowtype='hann'):
 
     # STFT計算部分
     while frame <= len(y):
-        # 窓関数を乗じてDFT
-        mat[:, col] = abs(fft(y[begin:frame])).T*window
+        try:
+            # 窓関数を乗じてDFT
+            mat[:, col] = abs(fft(y[begin:frame])).T*window
+        # 例外処理
+        except IndexError:
+            print('IndexError. Frame size is too short.')
+            break
+            
         # それぞれシフト長だけシフト
         begin += shift
         frame += shift
@@ -50,6 +55,6 @@ if __name__ == '__main__':
 
     spectrogram = stft(y, 1000, 150,'hamming')
 
-    plt.imshow(spectrogram, cmap="inferno")
+    plt.imshow(spectrogram)
     plt.colorbar()
     plt.show()
