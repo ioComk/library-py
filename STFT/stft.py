@@ -55,6 +55,6 @@ if __name__ == '__main__':
 
     spectrogram = stft(y, 1000, 150,'hamming')
 
-    plt.imshow(spectrogram, cmap="inferno")
+    plt.imshow(spectrogram)
     plt.colorbar()
     plt.show()
