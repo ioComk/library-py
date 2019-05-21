@@ -10,13 +10,11 @@ def stft(signal, frame, shift, windowtype='hann'):
     begin = 0
     col = 0  # 配列に格納する際の列のインデックス
 
-    mat = np.zeros((frame, int(len(y)/shift)))  # スペクトログラムを格納する行列，大体の大きさを確保しておく
-    
+    mat = np.zeros((frame, len(y)//shift))  # スペクトログラムを格納する行列，大体の大きさを確保しておく
+
     # 信号の両端を零詰め
-    for i in range(int(frame/2)):
-        signal = np.insert(signal,i,0)
-    for i in range(frame):
-        signal = np.append(signal,0)
+    zero_padding = np.zeros((frame))
+    signal = np.concatenate([zero_padding[0:frame//2], signal, zero_padding])
 
     # 窓関数の指定
     if windowtype == 'hann':
@@ -35,7 +33,7 @@ def stft(signal, frame, shift, windowtype='hann'):
         except IndexError:
             print('IndexError. Frame size is too short.')
             break
-            
+
         # それぞれシフト長だけシフト
         begin += shift
         frame += shift
@@ -43,7 +41,7 @@ def stft(signal, frame, shift, windowtype='hann'):
 
     mat = mat[:, :col]  # 余分な列を削除
     # 下半分だけ抽出して利得を計算
-    mat = 20*np.log1p(mat[int(mat.shape[0]/2):int(mat.shape[0]), :])
+    mat = 20*np.log1p(mat[mat.shape[0]//2:mat.shape[0], :])
 
     return mat
 
@@ -53,7 +51,7 @@ if __name__ == '__main__':
     # y = amplitude, sr = sample rate
     y, sr = sf.read(filename)
 
-    spectrogram = stft(y, 1000, 150,'hamming')
+    spectrogram = stft(y, 1000, 150, 'hamming')
 
     plt.imshow(spectrogram)
     plt.colorbar()
