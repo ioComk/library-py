@@ -43,7 +43,7 @@ def ICA(wavs, iter=100, step=0.2):
     ipt = np.array(wavs)
     w = np.array([[rnd.random() - 0.5, rnd.random() - 0.5], [rnd.random() - 0.5, rnd.random() - 0.5]])
     out = w @ ipt
-    for i in range(0, 100):
+    for i in range(0, iter):
         e = entropy(out)
         w = w + step * (np.identity(2) - e) @ w
         out = w @ ipt
