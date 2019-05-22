@@ -1,20 +1,35 @@
 import os
+import sys
 import soundfile as sf
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft
 
+'''
+# args
 
-def stft(signal, fftsize, shiftsize, windowtype='hann'):
-    begin = 0
-    col = 0  # 配列に格納する際の列のインデックス
+      signal: input signal
+     fftsize: frame length (Even number)
+   shiftsize: shift length (Recommend: fftsize/2)
+  windowtype: window function
 
-    mat = np.zeros((fftsize, (len(signal)+int(fftsize*1.5))//shiftsize))  # スペクトログラムを格納する行列，大体の大きさを確保しておく
+# returns
 
-    # 信号の両端を零詰め
-    zero_padding = np.zeros((fftsize))
-    signal = np.concatenate([zero_padding[0:fftsize//2], signal, zero_padding])
+       S: spectrogram of input signal
+  window: window function used in STFT
+
+'''
+
+
+def stft(signal, fftsize=1024, shiftsize=512, windowtype='hamming'):
+
+    if fftsize % 2 != 0:
+        print('FFT size must be an even number.')
+        sys.exit()
+    elif fftsize % shiftsize != 0:
+        print('FFT size must be dividable by Shift size.')
+        sys.exit()
 
     # 窓関数の指定
     if windowtype == 'hann':
@@ -23,27 +38,47 @@ def stft(signal, fftsize, shiftsize, windowtype='hann'):
         window = np.hamming(fftsize)
     elif windowtype == 'blackman':
         window = np.blackman(fftsize)
+    else:
+        print('Unsupported window is requested.')
+        sys.exit()
 
-    # STFT計算部分
-    while fftsize <= len(signal):
-        try:
-            # 窓関数を乗じてDFT
-            mat[:, col] = abs(fft(signal[begin:fftsize])).T*window
-        # 例外処理
-        except IndexError:
-            print('IndexError. FFT size is too short.')
-            break
+    # 信号の両端を零詰め
+    nch = signal.ndim
+    zero_padding = fftsize - shiftsize
+    frames = (len(signal) - fftsize + shiftsize) // shiftsize
+    i = fftsize//2+1
 
-        # それぞれシフト長だけシフト
-        begin += shiftsize
-        fftsize += shiftsize
-        col += 1
+    # calculate STFT
+    # monoral
+    if nch == 1:
+        signal = np.concatenate(
+            [np.zeros(zero_padding), signal, np.zeros(fftsize)])
+        S = np.zeros([i, frames], dtype=np.complex128)
 
-    mat = mat[:, :col]  # 余分な列を削除
-    # 下半分だけ抽出して利得を計算
-    mat = 20*np.log1p(mat[mat.shape[0]//2:mat.shape[0], :])
+        for j in range(frames):
+            sp = j*shiftsize
+            spectrum = fft(signal[sp: sp+fftsize]*window)
+            S[:, j] = spectrum[:i]
 
-    return mat
+        return S, window
+    # stereo
+    elif nch == 2:
+        signal = np.concatenate(
+            [np.zeros((zero_padding, nch)), signal, np.zeros((zero_padding, nch))])
+        S = np.zeros([i, frames, nch], dtype=np.complex128)
+
+        for ch in range(nch):
+            for j in range(frames):
+                sp = j*shiftsize
+                spectrum = fft(signal[sp: sp+fftsize, ch]*window)
+                S[:, j, ch] = spectrum[:i]
+
+        return S, window
+
+
+def power(S):
+    return 20*np.log1p(abs(S))
+
 
 if __name__ == '__main__':
     filename = 'wav/s1.wav'
@@ -51,8 +86,8 @@ if __name__ == '__main__':
     # y = amplitude, sr = sample rate
     y, sr = sf.read(filename)
 
-    spectrogram = stft(y, 1000, 150, 'hamming')
+    spectrogram, window = stft(y, 1024, 512, 'hamming')
 
-    plt.imshow(spectrogram)
+    plt.imshow(power(spectrogram))
     plt.colorbar()
     plt.show()
