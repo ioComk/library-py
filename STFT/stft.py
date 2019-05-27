@@ -46,19 +46,19 @@ def stft(signal, fftsize=1024, shiftsize=512, windowtype='hamming'):
     nch = signal.ndim
     zero_padding = fftsize - shiftsize
     frames = (len(signal) - fftsize + shiftsize) // shiftsize
-    i = fftsize//2+1
+    i = fftsize//2
 
     # calculate STFT
     # monoral
     if nch == 1:
         signal = np.concatenate(
             [np.zeros(zero_padding), signal, np.zeros(fftsize)])
-        S = np.zeros([i, frames], dtype=np.complex128)
+        S = np.zeros((i, frames), dtype=np.complex128)
 
         for j in range(frames):
             sp = j*shiftsize
             spectrum = fft(signal[sp: sp+fftsize]*window)
-            S[:, j] = spectrum[:i]
+            S[:, j] = spectrum[i:]
 
         return S, window
     # stereo
